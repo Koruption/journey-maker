@@ -7,11 +7,7 @@ Image Credits - <a href="https://wallhere.com/en/wallpaper/1929717">wallhere.com
 </figure>
 A tool inspired by traditional I/O text based terminal games. Use it to easily create stories and branching narratives.
 
-# Examples
-
----
-
-#### Getting Started
+# Getting Started
 
 ```ts
 const journey = JourneyEngine.create();
@@ -39,7 +35,7 @@ engine.in(
 )
 ```
 
-#### Configuration
+# Configuration
 Aside from middleware, you can configure the engine to use any question parser you'd like. This can be done by inheriting from the `QuestionParser` class and implementing the `parse()` method. This method should return a list of `Question` objects. This gives creators the freedom to write questions in any format they'd like, so long as there is a parser which supports it.
 ```ts
 // pass in the desired parser
@@ -49,7 +45,7 @@ const engine = new JourneyEngine(new YAMLQuestionParser())
 await engine.questions.configure('questions')
 ```
 
-#### Middleware Support
+# Middleware Support
 
 The Journey Engine supports I/O middleware with an interface similar to Express.js. To add your own simply subclass the `InMiddleware` or `OutMiddleware` abstract base and implement the `process()` method.
 
@@ -65,7 +61,7 @@ export class SimpleOutMiddleware
 engine.middleware.use(SimpleOutMiddleware)
 ```
 This makes creating interfaces for your journey games a matter of attaching I/O middleware with your favorite terminal package, or writing one from scratch. 
-#### Hooking In
+# Hooking In
 
 In order to build dynamic experiences with the engine you'll need to hook into the engine's I/O streams and respond to user input as you wish. There are a few ways to do this, the simplest is by instancing a `Journey` class which wraps the engine code and provides a simple interface for tapping into it's streams.
 
