@@ -45,7 +45,7 @@ Aside from middleware, you can configure the engine to use any question parser y
 // pass in the desired parser
 const engine = new JourneyEngine(new YAMLQuestionParser())
 
-// configure the engine w/questions from parsed question
+// configure the engine w/questions from parsed file
 await engine.questions.configure('questions')
 ```
 
