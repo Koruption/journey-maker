@@ -85,14 +85,19 @@ export class TerminalOutputStream extends Readable {
 }
 
 export interface EngineMiddleware<T> {
+  engine: JourneyEngine;
   init(): Promise<void> | void
   process(data: T): Promise<void> | void
+  attachStream(...args: any[]): void;
 }
 
 export abstract class OutputMiddleware
   implements EngineMiddleware<Response> {
-  constructor (outStream?: TerminalOutputStream) {
-    outStream?.on('data', data =>
+  private hasAttached: boolean = false;
+  constructor (public engine: JourneyEngine) {}
+  attachStream(outStream: TerminalOutputStream) {
+    if (this.hasAttached) throw new Error(`This middleware has already attached to the engine.`);
+    outStream.on('data', data =>
       this.process(this.asResponse(data))
     )
   }
@@ -106,8 +111,12 @@ export abstract class OutputMiddleware
 
 export abstract class InputMiddleware
   implements EngineMiddleware<TerminalInput> {
-  constructor (inStream?: TerminalInputStream) {
-    inStream?.on('data', data =>
+    private hasAttached: boolean = false;
+  constructor (public engine: JourneyEngine) {}
+
+  attachStream(inStream: TerminalInputStream) {
+    if (this.hasAttached) throw new Error('This has already attached to the engine.')
+    inStream.on('data', data =>
       this.process(this.asInput(data))
     )
   }
@@ -124,13 +133,14 @@ export class MiddlewareManager {
     { new (...args: any[]): EngineMiddleware<any> },
     EngineMiddleware<any>
     >()
-  constructor(private inStream: TerminalInputStream, private outStream: TerminalOutputStream) {}
+  constructor(private engine: JourneyEngine, private inStream: TerminalInputStream, private outStream: TerminalOutputStream) {}
   async use (middleware: { new (...args: any[]): EngineMiddleware<any> }) {
     if (this.middleware.has(middleware))
       throw new Error(
         `The middleware with constructor: ${middleware} has already been registered to the engine.`
       )
-    const mInstance = new middleware() instanceof InputMiddleware ? new middleware(this.inStream) : new middleware(this.outStream);
+    const mInstance = new middleware(this.engine);
+    mInstance instanceof InputMiddleware ? mInstance.attachStream(this.inStream) : mInstance.attachStream(this.outStream);
     await mInstance.init()
     this.middleware.set(middleware, mInstance)
   }
@@ -196,7 +206,7 @@ export class JourneyEngine {
     if (JourneyEngine._instance) throw new Error('Journey engine has already been instanced.')
     this.inStream = new TerminalInputStream()
     this.outStream = new TerminalOutputStream()
-    this.middleware = new MiddlewareManager(this.inStream, this.outStream);
+    this.middleware = new MiddlewareManager(this, this.inStream, this.outStream);
     this.questions = new QuestionManager(parser)
     JourneyEngine._instance = this
     return JourneyEngine._instance
@@ -263,48 +273,3 @@ export class EngineInterface {
     
   }
 }
-
-
-/** 
-
-// Examples
-
-const engine = new JourneyEngine();
-const journey = engine.create()
-
-// configure middleware
-engine.middleware.use(SimpleOutMiddleware);
-engine.middleware.use(SimpleInMiddleware);
-
-journey.on('q1', (answer, response) => {
-  response.send(question('A response 1', choices(['one', 'two'])))
-})
-
-journey.on('q2', (answer, response) => {
-  answer
-    .chosen(1)
-    .send(
-      question('A response 2 ~ wont send because this choice was not selected')
-    )
-  answer
-    .chosen(2)
-    .send(question(`You have selected choice ${answer.input?.choiceIndex}`))
-})
-
-JourneyEngine.instance().in(
-  new TerminalInput(
-    {
-      id: 'q2',
-      text: 'A fire breaks out in the tavern, what do you do?',
-      choices: choices([
-        'Run!',
-        'Douse it with the nearest pint of grog',
-        'Cast a random spell'
-      ]),
-      type: 'CHOICE'
-    },
-    { choiceIndex: 2 }
-  )
-)
-
-*/
