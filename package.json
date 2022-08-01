@@ -4,7 +4,7 @@
   "description": "A tool inspired by traditional I/O text based terminal games. Use it to easily create stories and branching narratives.",
   "main": "index.js",
   "scripts": {
-    "start": "npx ts-node main",
+    "start": "npx ts-node journey2",
     "test": "npx jest"
   },
   "repository": {
