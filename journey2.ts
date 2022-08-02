@@ -10,8 +10,10 @@ namespace Journey {
             this.subs.forEach(sub => sub(streamData))
         }
     }
+
     let outStream = new DataStream();
     let inStream = new DataStream();
+    let questions: any
 
     export namespace outputs {
         export const write = <T = any>() => {
@@ -62,21 +64,26 @@ namespace Journey {
         inStream.push(args)
     }
 
-
     export const renderer = <T = any>() => {
         outStream = new DataStream<T>();
         const write = inputs.write<T>();
         const update = outputs.update<T>();
         return { write, start, update }
     }
+
     export const controller = <T = any>() => {
         inStream = new DataStream<T>();
         const write = outputs.write<T>();
         const update = inputs.update<T>();
-        return { write, start, update }
+        return { write, start, update, questions }
     }
 
-    export function run(...components: (() => void)[]) {
+    export function parsers(parser: any) {
+        questions = parser;
+    }
+
+    export async function run(...components: (() => void)[]) {
+        await questions.parse();
         components.forEach(component => component());
         startup();
         let i = 0;
@@ -87,33 +94,3 @@ namespace Journey {
         }, 3000);
     }
 }
-
-export function myRenderer() {
-    const { start, update, write } = Journey.renderer<{ question: string, answer: string }>();
-    let inputCounter = 0;
-    start(() => {
-        console.log('My Renderer Started!');
-    })
-    update(async (data) => {
-        if (inputCounter >= 1) return;
-        console.log(`Renderer updated with: ${data}`);
-        write({ question: 'Why have you come here young wanderer?', answer: '...' })
-        inputCounter += 1
-    });
-}
-
-export function myController() {
-    const { start, update, write } = Journey.controller<{ question: string, answer: string }>();
-    let inputCounter = 0;
-    start(() => {
-        console.log(`Controller started!`)
-    })
-    update((data) => {
-        if (inputCounter >= 1) return;
-        console.log(`Controller updated with data: ${data}`)
-        inputCounter += 1
-        write({ question: '' })
-    })
-}
-
-Journey.run(myRenderer, myController);
