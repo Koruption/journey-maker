@@ -5,4 +5,4 @@ import { YAMLQuestionParser } from "./src/parsers/yaml-question-parser";
 
 Journey.configPath('questions_2.yml')
 Journey.parser(new YAMLQuestionParser())
-Journey.run(BasicController, BasicRenderer)
+Journey.run(BasicRenderer, BasicController)
