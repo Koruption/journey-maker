@@ -1,275 +1,205 @@
-import { Readable } from 'stream'
+import { YAMLQuestionParser } from "./parsers/yaml-question-parser";
 
-export interface Question {
-  id: string | number
-  text: string
-  type: 'INPUT' | 'CHOICE'
-  choices: { text: string; selected: boolean }[]
-  meta?: string[]
-}
+export namespace Journey {
 
-export const question = (
-  text: string,
-  choices?: { text: string; selected: boolean }[],
-  opts?: {
-    id?: string | number
-    meta?: string[]
-  }
-): Question => {
-  return {
-    text: text,
-    type: choices ? 'CHOICE' : 'INPUT',
-    id: opts?.id ? opts.id : 'no-id',
-    meta: opts?.meta ? opts.meta : [],
-    choices: choices ? choices : []
-  }
-}
-
-export const choices = (choices: string[]) => {
-  return choices.map(choice => {
-    return { text: choice, selected: false }
-  })
-}
-
-export class Response {
-  constructor (
-    readonly validSender: boolean = false,
-    readonly input: TerminalInput,
-    public question?: Question
-  ) {}
-  send (question?: Question) {
-    this.question = question ? question : this.question
-    // console.log('sending response: ', data)
-    JourneyEngine.instance().out(this)
-  }
-}
-
-export class TerminalInput {
-  constructor (
-    public question: Question,
-    public input: { choiceIndex?: number; text?: string }
-  ) {}
-  chosen (data: string | number) {
-    return this.question.type == 'CHOICE' && this.input.choiceIndex === data
-      ? new Response(true, this)
-      : new Response(false, this)
-  }
-}
-
-export class TerminalInputStream extends Readable {
-  _read () {}
-  serializer: ((question: TerminalInput) => string) | null = null
-  put (question: TerminalInput) {
-    const serialize =
-      this.serializer != null
-        ? this.serializer
-        : (q: TerminalInput) => {
-            return JSON.stringify(q)
-          }
-    this.push(serialize(question))
-  }
-}
-
-export class TerminalOutputStream extends Readable {
-  _read () {}
-  serializer: ((response: Response) => string) | null = null
-  put (response: Response) {
-    const serialize =
-      this.serializer != null
-        ? this.serializer
-        : (q: Response) => {
-            return JSON.stringify(q)
-          }
-    this.push(serialize(response))
-  }
-}
-
-export interface EngineMiddleware<T> {
-  engine: JourneyEngine;
-  init(): Promise<void> | void
-  process(data: T): Promise<void> | void
-  attachStream(...args: any[]): void;
-}
-
-export abstract class OutputMiddleware
-  implements EngineMiddleware<Response> {
-  private hasAttached: boolean = false;
-  constructor (public engine: JourneyEngine) {}
-  attachStream(outStream: TerminalOutputStream) {
-    if (this.hasAttached) throw new Error(`This middleware has already attached to the engine.`);
-    outStream.on('data', data =>
-      this.process(this.asResponse(data))
-    )
-  }
-  init (): Promise<void> | void {}
-  asResponse (response: string) {
-    const parsed = JSON.parse(response) as Response
-    return new Response(parsed.validSender, parsed.input, parsed.question)
-  }
-  abstract process (response: Response): void | Promise<void>
-}
-
-export abstract class InputMiddleware
-  implements EngineMiddleware<TerminalInput> {
-    private hasAttached: boolean = false;
-  constructor (public engine: JourneyEngine) {}
-
-  attachStream(inStream: TerminalInputStream) {
-    if (this.hasAttached) throw new Error('This has already attached to the engine.')
-    inStream.on('data', data =>
-      this.process(this.asInput(data))
-    )
-  }
-  init (): Promise<void> | void {}
-  asInput (input: string) {
-    const parsed = JSON.parse(input) as TerminalInput
-    return new TerminalInput(parsed.question, parsed.input)
-  }
-  abstract process (input: TerminalInput): Promise<void> | void
-}
-
-export class MiddlewareManager {
-  private middleware = new Map<
-    { new (...args: any[]): EngineMiddleware<any> },
-    EngineMiddleware<any>
-    >()
-  constructor(private engine: JourneyEngine, private inStream: TerminalInputStream, private outStream: TerminalOutputStream) {}
-  async use (middleware: { new (...args: any[]): EngineMiddleware<any> }) {
-    if (this.middleware.has(middleware))
-      throw new Error(
-        `The middleware with constructor: ${middleware} has already been registered to the engine.`
-      )
-    const mInstance = new middleware(this.engine);
-    mInstance instanceof InputMiddleware ? mInstance.attachStream(this.inStream) : mInstance.attachStream(this.outStream);
-    await mInstance.init()
-    this.middleware.set(middleware, mInstance)
-  }
-}
-
-export abstract class QuestionParser {
-  abstract parse(...args: any[]): Promise<Question[]> | Question[];
-}
-
-export class QuestionManager {
-  private _questions: Question[] = [];
-  private _currentQuestion: {q: Question | null, indx: number};
-  get current() { return this.questions[this._currentQuestion?.indx] }
-  get questions() { return this._questions;  }
-  constructor(protected parser: QuestionParser) { 
-    this._currentQuestion = { q: null, indx: -1 };
-  }
-  async configure(...args: any[]): Promise<void> {
-    this._questions = await this.parser.parse(args);
-  }
-  get(qid: string | number) {
-    return this._questions.find(q => q.id === qid )
-  }
-  next() {
-    if (this._currentQuestion == undefined) {
-      this._currentQuestion = { q: this._questions[0], indx: 0 };
-      return this.current;
+    export abstract class QuestionParser<T extends Question = Question> {
+        configPath: string = configurationPath;
+        abstract parse(): T[] | Promise<T[]>;
     }
-    const newIndx = this._currentQuestion.indx + 1;
-    if (newIndx > this._questions.length) throw new Error('Reached end of questions.')
-    return this.setCurrentQuestion(newIndx)
-  }
 
-  private setCurrentQuestion(newIndx: number) {
-    this._currentQuestion = { q: this._questions[newIndx], indx: newIndx }
-    return this.current;
-  }
-
-  previous() {
-    if (!this._currentQuestion?.indx) throw new Error('No new indx could be found in question manager.')
-    const newIndx = this._currentQuestion.indx - 1;
-    if (newIndx < 0) throw new Error('Reached beginning of questions.')
-    return this.setCurrentQuestion(newIndx);
-  }
-  
-  skip(by: number) {
-    if (!this._currentQuestion?.indx) throw new Error('No new indx could be found in question manager.')
-    const newIndx = this._currentQuestion.indx + by;
-    if (newIndx > this._questions.length || newIndx < 0) throw new Error(`Skip question by ${by} is out of question range`);
-    return this.setCurrentQuestion(newIndx);
-  }
-}
-
-export class JourneyEngine {
-  protected inStream: TerminalInputStream;
-  protected outStream: TerminalOutputStream;
-  private static _instance: JourneyEngine;
-
-  middleware: MiddlewareManager;
-  readonly questions: QuestionManager;
-
-  constructor (parser: QuestionParser) {
-    if (JourneyEngine._instance) throw new Error('Journey engine has already been instanced.')
-    this.inStream = new TerminalInputStream()
-    this.outStream = new TerminalOutputStream()
-    this.middleware = new MiddlewareManager(this, this.inStream, this.outStream);
-    this.questions = new QuestionManager(parser)
-    JourneyEngine._instance = this
-    return JourneyEngine._instance
-  }
-  static instance () {
-    return JourneyEngine._instance
-  }
-
-  out (response: Response) {
-    if (!response.validSender) return
-    this.outStream.put(response)
-  }
-  in(input: TerminalInput) {
-    this.inStream.put(input)
-  }
-  create () {
-    return new Journey(this.inStream)
-  }
-}
-
-export class Journey {
-  protected qMap: Map<string | number, any[]> = new Map<string, any[]>()
-  protected engine: JourneyEngine = JourneyEngine.instance()
-  constructor(private inStream: TerminalInputStream) {
-    this.inStream?.on('data', data => {
-      const ioData = JSON.parse(data) as any
-      const terminalInput = new TerminalInput(ioData.question, ioData.input)
-      this.qMap
-        .get(ioData.question.id)
-        ?.forEach(f => f(terminalInput, new Response(true, terminalInput)))
-    })
-  }
-  on (
-    question: any,
-    action: (answer: TerminalInput, response: Response) => void
-  ) {
-    if (!this.qMap.has(question)) {
-      this.qMap.set(question, [action])
-      return
+    export class Question {
+        id: string = ''
+        readonly question: string = '';
+        readonly text: string = '';
+        readonly choices: string | number | string[] | number[] = '';
+        readonly type: 'SELECT' | 'MULTISELECT' | 'INPUT' | '' = '';
+        readonly meta: any;
+        constructor(question?: Partial<Question>) { question ? Object.assign(this, question) : null }
     }
-    this.qMap.get(question)?.push(action)
-  }
-}
 
-export class SimpleOutMiddleware
-  extends OutputMiddleware {
-  process(response: Response): void | Promise<void> {
-    console.log('Out middleware response received: ', response);
-  }
-}
+    class Response {
+        private _write = Journey.controller().write;
+        constructor(private _execute: boolean) { }
+        write(qid: string | number): void;
+        write(qid: Question): void;
+        write(qid: Question | string | number | any): void {
+            if (!this._execute) return
+            if (typeof qid === 'string' || typeof qid === 'number') {
+                questions.setCurrent(questions.getIndex(qid))
+                const question = questions.get(qid);
+                if (question) this._write(question);
+            }
+            this._write(qid);
+        }
+    }
 
-export class SimpleInMiddleware
-  extends InputMiddleware {
-  process(input: TerminalInput): void | Promise<void> {
-    console.log('Input middleware input received ', input)
-  }
-}
+    export class Answer {
+        meta: any;
+        question: Question;
+        _linkedQuestion?: Question
+        constructor(data: { question: Question, _linkedQuestion?: Question, meta?: any }) {
+            const { question, _linkedQuestion, meta } = data;
+            this.question = question;
+            this._linkedQuestion = _linkedQuestion;
+            this.meta = meta;
+        }
+        get linkedQuestion() { return this._linkedQuestion; }
+        choice(...choices: number[]) {
+            return new Response(true)
+        }
+        choices(choices: number[]) {
+            return new Response(true);
+        }
+        hasLinked() { return this.linkedQuestion != null && this._linkedQuestion != undefined }
+    }
 
-export class EngineInterface {
-  constructor() {
-    //JourneyEngine.instance().
-  }
-  start() {
-    
-  }
+    export class Questions<T extends Question = Question, K extends Answer = Answer> {
+        private questionMap: Map<string | number, { question: Question, subs: Array<(answer: K) => void | Promise<void>> }> = new Map<string, { question: Question, subs: Array<(answer: K) => void | Promise<void>> }>();
+        private _list: T[] = [];
+        private _currentIndex: number = 0;
+
+        setCurrent(index: number) { this._currentIndex = index; }
+        getCurrent() { return this._list[this._currentIndex] }
+
+        next() {
+            const nextIndx = this._currentIndex + 1;
+            return this._list.slice(
+                this._currentIndex + 1, 1)[0]
+        }
+
+        previous() {
+            const prevIndx = this._currentIndex + 1;
+            return this._list.slice(
+                this._currentIndex - 1, 1)[0]
+        }
+
+        get list() { return this._list };
+
+        initialize(questions: T[]) {
+            this._list = questions;
+            this._list.forEach(q => this.questionMap.set(q.id, { question: q, subs: [] }));
+        }
+        on(qid: string, cb: (answer: K) => void | Promise<void>): void;
+        on(qid: number, cb: (answer: K) => void | Promise<void>): void;
+        on(qid: number[], cb: (answer: K) => void | Promise<void>): void;
+        on(qid: string[], cb: (answer: K) => void | Promise<void>): void;
+        on(qid: string | number | string[] | number[], cb: (answer: K) => void | Promise<void>) {
+            if (typeof qid === 'string' || typeof qid === 'number') {
+                if (!this.questionMap.has(qid) ? this.questionMap.get(qid)?.subs.push(cb) : null) throw new Error(`Question with qid: ${qid} could not be found in the questions map.`)
+                return
+            }
+            qid.forEach(id => {
+                if (!this.questionMap.has(id) ? this.questionMap.get(id)?.subs.push(cb) : null) throw new Error(`Question with qid: ${id} could not be found in the questions map.`)
+            });
+        }
+
+        get(qid: string | number) {
+            if (!this.questionMap.has(qid)) throw new Error(`Question with qid: ${qid} could not be found in the questions map.`)
+            return this.questionMap.get(qid)?.question;
+        }
+
+        getIndex(qid: string | number) {
+            if (!this.questionMap.has(qid)) throw new Error(`Question with qid: ${qid} could not be found in the questions map.`)
+            return this._list.findIndex(q => q.id === qid)
+        }
+
+        trigger(qid: string | number, answer: K) {
+            if (!this.questionMap.has(qid)) throw new Error(`Question with qid: ${qid} could not be found in the questions map.`)
+            this.questionMap.get(qid)?.subs.forEach(sub => sub(answer));
+        }
+    }
+
+    export class DataStream<T = any> {
+        data = Array<T>();
+        subs = Array<(data?: T) => void | Promise<void>>();
+        on(sub: (data?: T) => void | Promise<void>) {
+            this.subs.push(sub);
+        }
+        push(streamData: T) {
+            this.data.push(streamData);
+            this.subs.forEach(sub => sub(streamData))
+        }
+    }
+
+    let outStream = new DataStream();
+    let inStream = new DataStream();
+    let starts = new Array<() => void | Promise<void>>();
+    let questions = new Questions();
+    let configurationPath = '';
+    let _parser: QuestionParser;
+
+    // Writes to terminal from controller
+    export namespace outputs {
+        export const write = <T extends Question = Question>() => {
+            return (data: any | Question) => {
+                outStream.push(data);
+            }
+        }
+        export const update = <T extends Answer = Answer>() => {
+            return (cb: (data?: T) => void | Promise<void>) => {
+                outStream.on(cb);
+            }
+        }
+    }
+
+    // Writes to controller from terminal
+    export namespace inputs {
+        export const write = <T extends Answer = Answer>() => {
+            return (...args: T[]) => {
+                questions.trigger(args[0].question.id, args[0])
+                //inStream.push(args);
+            }
+        }
+        export const update = <T extends Question = Question>() => {
+            return (cb: (data?: T) => void | Promise<void>) => {
+                inStream.on(cb);
+            }
+        }
+    }
+
+    export const startup = async () => {
+        // do engine setup
+        // ...
+        console.log('Staring Journey Engine.')
+        Promise.all(starts.map(start => start()))
+    };
+
+    export const start = async (cb: () => void | Promise<void>) => {
+        starts.push(cb);
+    }
+
+    export const streamOut = (...args: any[]) => {
+        outStream.push(args);
+    }
+
+    export const streamIn = (...args: any[]) => {
+        inStream.push(args)
+    }
+
+    export const renderer = <T extends Answer = Answer, K extends Question = Question>() => {
+        outStream = new DataStream<T>();
+        const write = inputs.write<T>();
+        const update = inputs.update<K>();
+        return { write, start, update }
+    }
+
+    export const controller = <T extends Answer = Answer, K extends Question = Question>() => {
+        inStream = new DataStream<T>();
+        const write = outputs.write<K>();
+        const update = outputs.update<T>();
+        return { write, start, update, questions }
+    }
+
+    export async function parser(parser: QuestionParser) {
+        _parser = parser;
+    }
+
+    export function configPath(fPath: string) { configurationPath = fPath; }
+
+    export async function run(...components: (() => void)[]) {
+        questions.initialize(await _parser.parse())
+        // console.log(questions.list);
+        components.forEach(component => component());
+        startup();
+    }
 }
