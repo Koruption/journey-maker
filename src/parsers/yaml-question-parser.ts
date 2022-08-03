@@ -3,7 +3,7 @@ import YAML from 'yaml';
 import { Journey } from '../journey';
 
 export class YAMLQuestionParser extends Journey.QuestionParser {
-  parse(): Journey.Question[] {
+  async parse(): Promise<Journey.Question[]> {
     const file = fs.readFileSync(this.configPath, 'utf-8');
     const parsed = YAML.parse(file);
     let questions: Journey.Question[] = []
@@ -16,6 +16,7 @@ export class YAMLQuestionParser extends Journey.QuestionParser {
         meta: parsed[q]['Meta'] ? parsed[q]['Meta'] : []
       }))
     }
+    await Journey.utils.Timers.sleep(5000);
     return questions;
   }
 }

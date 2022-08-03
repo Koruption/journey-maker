@@ -1,3 +1,5 @@
+import { createWriteStream, writeFileSync, WriteStream } from "fs";
+import path from "path";
 
 export namespace Journey {
   export namespace utils {
@@ -18,6 +20,28 @@ export namespace Journey {
      */
     export const isNotQuestion = (data: Question | any) => {
       return !(data instanceof Journey.Question)
+    }
+
+    export namespace Logging {
+      let logFileName = 'log-'.concat(new Date().toLocaleTimeString().replace(':', '-'));
+      let logStream: WriteStream;
+      export const start = async () => {
+        // logStream = createWriteStream('logs.txt')
+        logStream = createWriteStream(path.join('src', 'logs', `${logFileName}.txt`))
+        await new Promise<void>((res, rej) => {
+          logStream.on('open', () => res())
+        })
+        return
+      }
+      export const close = () => {
+        logStream.close();
+      }
+      export const log = (...messages: any[]) => {
+        messages.forEach(data => {
+          data = typeof data != 'string' ? JSON.stringify(data) : data;
+          logStream.write(`\n log (${new Date().toLocaleTimeString()}): ${data}`);
+        })
+      }
     }
 
     export namespace Timers {
@@ -303,6 +327,7 @@ export namespace Journey {
   const inStream = new DataStream()
   const starts = new Array<() => void | Promise<void>>()
   const questions = new Questions()
+  const loggingDir: string = './logs/'
   let configurationPath = 'questions.yml'
   let _parser: QuestionParser;
 
@@ -334,6 +359,7 @@ export namespace Journey {
     // do engine setup
     // ...
     //console.log('Staring Journey Engine.')
+    await utils.Logging.start();
     utils.rendering.clear();
     for (let start of starts) {
       await start()
@@ -382,7 +408,6 @@ export namespace Journey {
 
   export async function run(...components: (() => void)[]) {
     questions.initialize(await _parser.parse())
-    console.log(questions.list)
     components.forEach(component => component())
     await startup()
   }

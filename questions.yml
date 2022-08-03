@@ -7,5 +7,10 @@
   Meta: 'assets/image.gif'
 4:
   Question: A screeching roar grows in the distance, how do you react
+  Choices: 
+    - Jump in the nearest barrel (its filled with grog)
+    - Unsheath your rusty sword
+    - Eat a magic bean and hope for the best
+    - ...
 5:
   Question: Ok, have a look at this https://vault.fbi.gov/Jack%20the%20Ripper/Jack%20the%20Ripper%20Part%201%20of%201/view .. there is missing evidence, and we intend to find it.
