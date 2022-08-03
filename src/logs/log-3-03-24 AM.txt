@@ -1,0 +1,7 @@
+
+ [Journey Log (3:03:29 AM)]: {"id":"1","question":"","text":"Do you believe in magic young wanderer?","choices":[],"type":"INPUT","meta":[]}
+ [Journey Log (3:03:33 AM)]: {"id":"2","question":"","text":"Why have you journeyed to Grandor?","choices":[],"type":"INPUT","meta":[]}
+ [Journey Log (3:03:36 AM)]: {"id":"3","question":"","text":"What is your name?","choices":[],"type":"INPUT","meta":"assets/image.gif"}
+ [Journey Log (3:03:37 AM)]: {"id":"4","question":"","text":"A screeching roar grows in the distance, how do you react","choices":["Jump in the nearest barrel (its filled with grog)","Unsheath your rusty sword","Eat a magic bean and hope for the best","..."],"type":"SELECT","meta":[]}
+ [Journey Log (3:03:37 AM)]: {"Jump in the nearest barrel (its filled with grog)":"Jump in the nearest barrel (its filled with grog)"}
+ [Journey Log (3:03:37 AM)]: {"id":"5","question":"","text":"Ok, have a look at this https://vault.fbi.gov/Jack%20the%20Ripper/Jack%20the%20Ripper%20Part%201%20of%201/view .. there is missing evidence, and we intend to find it.","choices":[],"type":"INPUT","meta":[]}

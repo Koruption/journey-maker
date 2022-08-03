@@ -1,0 +1,2 @@
+
+ [Journey Log (3:05:04 AM)]: {"id":"1","question":"","text":"Do you believe in magic young wanderer?","choices":[],"type":"INPUT","meta":[]}

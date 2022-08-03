@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "npx ts-node main",
+    "logging:clear": "npx ts-node src/tools/clear-logs",
     "test": "npx jest"
   },
   "repository": {
@@ -27,6 +28,7 @@
   "dependencies": {
     "@types/terminal-kit": "^1.34.1",
     "enquirer": "^2.3.6",
+    "get-pixels": "^3.3.3",
     "terminal-image": "^2.0.0",
     "terminal-kit": "^2.4.0",
     "ts-node": "^10.9.1",

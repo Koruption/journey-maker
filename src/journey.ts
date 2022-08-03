@@ -1,4 +1,7 @@
 import { createWriteStream, writeFileSync, WriteStream } from "fs";
+import { readdir, rm, rmdir } from "fs/promises";
+var term = require('terminal-kit').terminal;
+// import terminalImage from 'terminal-image';
 import path from "path";
 
 export namespace Journey {
@@ -23,11 +26,10 @@ export namespace Journey {
     }
 
     export namespace Logging {
-      let logFileName = 'log-'.concat(new Date().toLocaleTimeString().replace(':', '-'));
+      let logFileName = 'log-'.concat(new Date().toLocaleTimeString().replace(/:/g, '-')).concat('.txt');
       let logStream: WriteStream;
       export const start = async () => {
-        // logStream = createWriteStream('logs.txt')
-        logStream = createWriteStream(path.join('src', 'logs', `${logFileName}.txt`))
+        logStream = createWriteStream(path.join(loggingDir, logFileName))
         await new Promise<void>((res, rej) => {
           logStream.on('open', () => res())
         })
@@ -39,8 +41,15 @@ export namespace Journey {
       export const log = (...messages: any[]) => {
         messages.forEach(data => {
           data = typeof data != 'string' ? JSON.stringify(data) : data;
-          logStream.write(`\n log (${new Date().toLocaleTimeString()}): ${data}`);
+          logStream.write(`\n [Journey Log (${new Date().toLocaleTimeString()})]: ${data}`);
         })
+      }
+      export const cleanup = async () => {
+        const files = await readdir(loggingDir);
+        if (!(files.length > 0)) return
+        for (let file of files) {
+          await rm(path.join(loggingDir, file))
+        }
       }
     }
 
@@ -76,7 +85,6 @@ export namespace Journey {
         return milliseconds / 1000
       }
     }
-
     export namespace rendering {
       export const clear = () => {
         console.clear()
@@ -101,6 +109,30 @@ export namespace Journey {
         })
         clear()
       }
+
+      export const image = async (fpath: string) => {
+        await term.drawImage(path.join(assetsDir, fpath), { shrink: { width: term.width, height: term.height * 2 } })
+      }
+
+      // export const image = async (fpath: string, opts?: { width: string, height: string, preserveAspectRatio: boolean }) => {
+      //   process.stdout.write(await terminalImage.file(path.join(assetsDir, fpath)))
+      // }
+
+      // export const gif = async (fpath: string, opts?: { width: string, height: string, preserveAspectRatio: boolean }) => {
+      //   // process.stdout.write(await terminalImage.gifFile(path.join(assetsDir, fpath)))
+      //   terminalImage.gifFile(path.join(assetsDir, fpath))
+      // }
+
+      // export const imageFromUrl = async (url: string, opts?: { width: string, height: string, preserveAspectRatio: boolean }) => {
+      //   const data = await got(url);
+      //   process.stdout.write(await terminalImage.buffer(data as any));
+      // }
+
+      // export const gifFromUrl = async (url: string, opts?: { width: string, height: string, preserveAspectRatio: boolean }) => {
+      //   const data = await got(url);
+      //   terminalImage.gifBuffer(data as any);
+      // }
+
       export namespace text {
         export const animate = async (texts: { text: string, timeout?: number }[]) => {
           for (let _text of texts) {
@@ -327,7 +359,8 @@ export namespace Journey {
   const inStream = new DataStream()
   const starts = new Array<() => void | Promise<void>>()
   const questions = new Questions()
-  const loggingDir: string = './logs/'
+  const loggingDir: string = path.join('src', 'logs');
+  const assetsDir: string = path.join('src', 'assets');
   let configurationPath = 'questions.yml'
   let _parser: QuestionParser;
 

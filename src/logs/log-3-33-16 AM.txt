@@ -1,0 +1,3 @@
+
+ [Journey Log (3:33:21 AM)]: {"id":"1","question":"","text":"Do you believe in magic young wanderer?","choices":[],"type":"INPUT","meta":[]}
+ [Journey Log (3:33:24 AM)]: {"id":"2","question":"","text":"Why have you journeyed to Grandor?","choices":[],"type":"INPUT","meta":[]}

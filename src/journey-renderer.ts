@@ -24,6 +24,8 @@ export function BasicRenderer() {
     let response;
     let answer;
     utils.Logging.log(question)
+    // utils.rendering.image('landscape.jpg')
+    utils.rendering.image('90sanime.gif')
     switch (question?.type) {
       case 'INPUT':
         response = await prompt({
@@ -52,7 +54,7 @@ export function BasicRenderer() {
           text: '',
           selection: response
         })
-        utils.Timers.sleep(2000)
+        // utils.Timers.sleep(2000)
         break;
       case 'MULTISELECT':
         response = await new Select({
@@ -72,7 +74,7 @@ export function BasicRenderer() {
         break;
     }
     utils.rendering.clear()
-    await utils.rendering.blink('...')
+    // await utils.rendering.blink('...')
     if (answer) write(answer)
   });
 }
