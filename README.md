@@ -8,81 +8,78 @@ Image Credits - <a href="https://wallhere.com/en/wallpaper/1929717">wallhere.com
 A tool inspired by traditional text adventure games. Use it to easily create stories and branching narratives. 
 
 # Overview
-The goal of the engine is simple, make it exceptionally easy to build cool, interactive text based games. Journey was made as a tool for writers to quickly build interactive stories. It can be as simple, or complex as you want, but some assumptions have been made, namely that you are creating a text based adventure game! The 3 core pieces of the Journey engine are the controller, renderer, and question set. Because Journey was made primarily for text adventures, some liberties were taken regarding its design. A few features may seem redundant, or unnecessary, but were nonetheless included to make it easier for those with little to no programming experience 
+The goal of the engine is simple, make it exceptionally easy for writers to build cool, interactive text based games. It can be as simple, or complex as you want, but some assumptions have been made regarding what you are making. The 3 core parts of the engine are the controller, renderer, and your question set. Because Journey is primarily for text adventures, some liberties were taken regarding its design. A few features may seem redundant, or unnecessary, but were nonetheless included to lower the barrier for users.
 
-# Getting Started
-Currently there is only one parser included in the project. It will take your yaml file and convert it into a format the engine can use. To get something up and running just add a yaml file with your questions formatted similarly to the ones included in the project.
+# Quick Start
 ```ts
-const journey = JourneyEngine.create();
-...
+import { JourneyApp } from './src/bootstrap';
 
-// when an input for question 1 is received, respond with question 3
-journey.on('Q1', (answer, response) => {
-  console.log(answer.player)
-  response.send(engine.questions.get('Q3'))
-})
+const app = JourneyApp.create()
+app.run();
+```
+and if you want to use a custom engine setup, just pass some arguments to the `create()` method
+```ts
+import { JourneyApp } from './src/bootstrap';
 
-// when input for question 3 is received, if user's choice is choice 1
-// or choice 4, respond with question 6
-journey.on('Q3', (answer, response) => {
-  answer.chosen(1).send(engine.questions.get('Q6'))
-  answer.chosen(4).send(engine.questions.get('Q6'))
-}))
-
-// push input data to the I/O stream
-engine.in(
-  new TerminalInput(engine.questions.current, {
-    choiceIndex: 2,
-    text: engine.questions.current.choices[2].text
-  })
+const app = JourneyApp.create({
+  parser: new MarkdownQuestionParser()
+},
+  myController(),
+  myRenderer()
 )
+app.run();
 ```
+# How it Works
+In a nutshell, the engine uses a parser to parse your questions and transform it into a format the engine can use. From there, you can choose to use the default controller and renderer implementations, or you can write your own. Out of the box, the engine's default controller will send your questions to the terminal in a linear fashion (top-down). For a more dynamic experience, you will need to write your own controller and react to the questions dynamically, e.g., `if question(2).choice == 1 then send question(7)`. Currently there is only one question parser provided in the project. It will take a yaml file and convert it into a format the engine can use. To get something up and running just add a yaml file with your questions formatted similarly to the ones included in the project.
 
-# Configuration
-Aside from middleware, you can configure the engine to use any question parser you'd like. This can be done by inheriting from the `QuestionParser` class and implementing the `parse()` method. This method should return a list of `Question` objects. This gives creators the freedom to write questions in any format they'd like, so long as there is a parser which supports it.
-```ts
-// pass in the desired parser
-const engine = new JourneyEngine(new YAMLQuestionParser())
-
-// configure the engine w/questions from parsed file
-await engine.questions.configure('questions')
-```
-
-# Middleware Support
-
-The Journey Engine supports I/O middleware with an interface similar to Express.js. To add your own simply subclass the `InMiddleware` or `OutMiddleware` abstract base and implement the `process()` method.
+# Controllers
+Controllers manage the dynamics of the experience. If a user does answers with this, do that. Capturing these sorts of dynamics is natural to do in code, the engine tries to make it as easy as possible to do so. Here's what a simple controller looks like.
 
 ```ts
-export class SimpleOutMiddleware
-  extends OutputMiddleware {
-  process(response: Response): void | Promise<void> {
-    console.log('Out middleware response received: ', response);
-  }
+import { Journey } from "./journey";
+
+export function SimpleController() {
+  // pull in the engine bindings
+  const { start, write, questions, utils } = Journey.controller();
+
+  start(async () => {
+    write(`Controller started!`)
+    write(questions.getCurrent())
+  })
+  // when any question is reached
+  questions.onAny(async (answer) => {
+    // send the next question (linear)
+    write(questions.next());
+  })
 }
-...
-
-engine.middleware.use(SimpleOutMiddleware)
 ```
-This makes creating interfaces for your journey games a matter of attaching I/O middleware with your favorite terminal package, or writing one from scratch. 
-# Hooking In
-
-In order to build dynamic experiences with the engine you'll need to hook into the engine's I/O streams and respond to user input as you wish. There are a few ways to do this, the simplest is by instancing a `Journey` class which wraps the engine code and provides a simple interface for tapping into it's streams.
-
+This is actually nearly identical to the default implementation provided in the engine. A more realistic controller with some dynamics would look like this.
 ```ts
+import { Journey } from "./journey";
 
-const journey = engine.create();
-...
+export function SimpleController() {
+  // pull in the engine bindings
+  const { start, write, questions, utils } = Journey.controller();
 
-// when an input for question 1 is received, respond with question 3
-journey.on('Q1', (answer, response) => {
-  console.log(answer.player)
-  response.send(engine.questions.get('Q3'))
-})
+  start(async () => {
+    write(`Controller started!`)
+    write(questions.getCurrent())
+  })
 
-// when input for question 3 is received, if user's choice is choice 1
-// or choice 4, respond with question 6
-journey.on('Q3', (answer, response) => {
-  answer.chosen(1).send(engine.questions.get('Q6'))
-  answer.chosen(4).send(engine.questions.get('Q6'))
-}))
+  // when question 1 is reached
+  questions.on('1', (answer) => {
+      // choice 1 or 4 -> write next question
+      answer.choice(1, 4).write(questions.next())
+      // choice 2 & 3 -> write question 3
+      answer.choices([2, 3]).write(3)
+    })
+
+    // when questions 2 or 3 are reached
+    questions.on(['2', '3'], (answer) => {
+      // jump to question 12
+      write('12')
+    })
+}
 ```
+
+# MORE DOCS COMING SOON 🙏..

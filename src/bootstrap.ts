@@ -6,7 +6,7 @@ import { YAMLQuestionParser } from "./parsers/yaml-question-parser";
 export class JourneyApp {
   static create(config?: {
     parser: Journey.QuestionParser,
-    configPath: string
+    configPath?: string
   }, controller?: () => void, renderer?: () => void) {
     const _controller = controller ? controller : BasicController;
     const _renderer = renderer ? renderer : BasicRenderer;
