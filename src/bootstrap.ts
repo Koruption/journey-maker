@@ -10,8 +10,25 @@ export class JourneyApp {
   }, controller?: () => void, renderer?: () => void) {
     const _controller = controller ? controller : BasicController;
     const _renderer = renderer ? renderer : BasicRenderer;
-    const parser = config.parser ? config.parser : new YAMLQuestionParser()
-    config.configPath ? Journey.configure(parser, config.configPath) : Journey.configure(parser)
-    return Journey.run(_controller, _renderer)
+    let parser, configPath;
+    if (config) {
+      parser = config.parser ? config.parser : new YAMLQuestionParser();
+      configPath = config.configPath ? config.configPath : null;
+      configPath ? Journey.configure(parser, configPath) : Journey.configure(parser);
+    }
+    else {
+      parser = new YAMLQuestionParser();
+      Journey.configure(parser)
+      configPath = null;
+    };
+    return {
+      controller: _controller,
+      renderer: _renderer,
+      parser: parser,
+      configPath: configPath,
+      run: () => {
+        Journey.run(_renderer, _controller)
+      }
+    }
   }
 }

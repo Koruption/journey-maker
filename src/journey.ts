@@ -1,6 +1,3 @@
-import { clear } from 'console'
-import { BasicController } from './journey-controller'
-import { BasicRenderer } from './journey-renderer'
 
 export namespace Journey {
   export namespace utils {
@@ -61,54 +58,54 @@ export namespace Journey {
         console.clear()
       }
       export const blink = async (
-          character: string,
-          every: number = 800,
-          nTimes: number = 3,
+        character: string,
+        every: number = 800,
+        nTimes: number = 3,
       ) => {
-          const interval = await new Promise<void>((resolve, reject) => {
-            let doWrite = true
-            let iteration = 0
-            const ir = setInterval(() => {
-                if (iteration === nTimes) {
-                clearInterval(ir)
-                resolve()
+        const interval = await new Promise<void>((resolve, reject) => {
+          let doWrite = true
+          let iteration = 0
+          const ir = setInterval(() => {
+            if (iteration === nTimes) {
+              clearInterval(ir)
+              resolve()
             }
-              doWrite ? process.stdout.write(character) : clear()
-              iteration = doWrite ? iteration += 1 : iteration
+            doWrite ? process.stdout.write(character) : clear()
+            iteration = doWrite ? iteration += 1 : iteration
             doWrite = !doWrite;
           }, every)
         })
         clear()
       }
-        export namespace text {
-            export const animate = async (texts: { text: string, timeout?: number }[]) => {
-                for (let _text of texts) {
-                   _text.timeout ? await _animate(_text.text, _text.timeout): await _animate(_text.text)
-                }
-            }
-            export const _animate = async (text: string, timeout: number = 5000, every: number = 20) => {
-                let i = 0;
-                let j = 1;
-                await new Promise<void>((res, rej) => {
-                    let interval = setInterval(() => { 
-                      process.stdout.write(text.slice(i, i + j))
-                      i += 1;
-                    }, every)
-                    setTimeout(() => {
-                      clearInterval(interval)
-                      process.stdout.clearScreenDown()
-                      res();
-                    }, timeout)
-                  })
-                Journey.utils.rendering.clear()
+      export namespace text {
+        export const animate = async (texts: { text: string, timeout?: number }[]) => {
+          for (let _text of texts) {
+            _text.timeout ? await _animate(_text.text, _text.timeout) : await _animate(_text.text)
           }
+        }
+        export const _animate = async (text: string, timeout: number = 5000, every: number = 20) => {
+          let i = 0;
+          let j = 1;
+          await new Promise<void>((res, rej) => {
+            let interval = setInterval(() => {
+              process.stdout.write(text.slice(i, i + j))
+              i += 1;
+            }, every)
+            setTimeout(() => {
+              clearInterval(interval)
+              process.stdout.clearScreenDown()
+              res();
+            }, timeout)
+          })
+          Journey.utils.rendering.clear()
+        }
       }
     }
   }
 
   export abstract class QuestionParser<T extends Question = Question> {
     configPath: string = configurationPath
-    abstract parse (): T[] | Promise<T[]>
+    abstract parse(): T[] | Promise<T[]>
   }
 
   export class Question {
@@ -118,17 +115,17 @@ export namespace Journey {
     readonly choices: string | number | string[] | number[] = ''
     readonly type: 'SELECT' | 'MULTISELECT' | 'INPUT' | '' = ''
     readonly meta: any
-    constructor (question?: Partial<Question>) {
+    constructor(question?: Partial<Question>) {
       question ? Object.assign(this, question) : null
     }
   }
 
   class Response {
     private _write = Journey.controller().write
-    constructor (private _execute: boolean) {}
-    write (qid: string | number): void
-    write (qid: Question): void
-    write (qid: Question | string | any): void {
+    constructor(private _execute: boolean) { }
+    write(qid: string | number): void
+    write(qid: Question): void
+    write(qid: Question | string | any): void {
       if (!this._execute) return
       if (typeof qid === 'string') {
         questions.setCurrent(questions.getIndex(qid))
@@ -145,7 +142,7 @@ export namespace Journey {
     _linkedQuestion?: Question
     selection: number = -1
     text: string = ''
-    constructor (data: {
+    constructor(data: {
       question: Question
       selection?: number
       text?: string
@@ -159,16 +156,16 @@ export namespace Journey {
       this.selection = data.selection ? data.selection : -1
       this.text = data.text ? data.text : ''
     }
-    get linkedQuestion () {
+    get linkedQuestion() {
       return this._linkedQuestion
     }
-    choice (...choices: number[]) {
+    choice(...choices: number[]) {
       return new Response(choices.some(c => c === this.selection))
     }
-    choices (choices: number[]) {
+    choices(choices: number[]) {
       return new Response(choices.every(c => c === this.selection))
     }
-    hasLinked () {
+    hasLinked() {
       return this.linkedQuestion != null && this._linkedQuestion != undefined
     }
   }
@@ -176,7 +173,7 @@ export namespace Journey {
   export class Questions<
     T extends Question = Question,
     K extends Answer = Answer
-  > {
+    > {
     private questionMap: Map<
       string,
       { question: Question; subs: Array<(answer: K) => void | Promise<void>> }
@@ -187,46 +184,46 @@ export namespace Journey {
     private _list: T[] = []
     private _currentIndex: number = 0
 
-    constructor () {
+    constructor() {
       inStream.on((data: K) => {
         this.trigger(data.question.id, data)
       })
     }
 
-    setCurrent (index: number) {
+    setCurrent(index: number) {
       this._currentIndex = index
     }
-    getCurrent () {
+    getCurrent() {
       return this._list[this._currentIndex]
     }
 
-    next () {
+    next() {
       const nextIndx = this._currentIndex + 1
       this._currentIndex = nextIndx
       return this._list[nextIndx]
     }
 
-    previous () {
+    previous() {
       const prevIndx = this._currentIndex - 1
       this._currentIndex = prevIndx
       return this._list[prevIndx]
     }
 
-    get list () {
+    get list() {
       return this._list
     }
 
-    initialize (questions: T[]) {
+    initialize(questions: T[]) {
       this._list = questions
       this._list.forEach(q =>
         this.questionMap.set(q.id, { question: q, subs: [] })
       )
     }
-    on (qid: string, cb: (answer: K) => void | Promise<void>): void
-    on (qid: number, cb: (answer: K) => void | Promise<void>): void
-    on (qid: number[], cb: (answer: K) => void | Promise<void>): void
-    on (qid: string[], cb: (answer: K) => void | Promise<void>): void
-    on (
+    on(qid: string, cb: (answer: K) => void | Promise<void>): void
+    on(qid: number, cb: (answer: K) => void | Promise<void>): void
+    on(qid: number[], cb: (answer: K) => void | Promise<void>): void
+    on(qid: string[], cb: (answer: K) => void | Promise<void>): void
+    on(
       qid: string | number | string[] | number[],
       cb: (answer: K) => void | Promise<void>
     ) {
@@ -252,13 +249,13 @@ export namespace Journey {
       })
     }
 
-    onAny (cb: (answer: K) => void | Promise<void>) {
+    onAny(cb: (answer: K) => void | Promise<void>) {
       this.questionMap.forEach((k, v) => {
         k.subs.push(cb)
       })
     }
 
-    get (qid: string) {
+    get(qid: string) {
       if (!this.questionMap.has(qid))
         throw new Error(
           `Question with qid: ${qid} could not be found in the questions map.`
@@ -266,7 +263,7 @@ export namespace Journey {
       return this.questionMap.get(qid)?.question
     }
 
-    getIndex (qid: string) {
+    getIndex(qid: string) {
       if (!this.questionMap.has(qid))
         throw new Error(
           `Question with qid: ${qid} could not be found in the questions map.`
@@ -274,13 +271,12 @@ export namespace Journey {
       return this._list.findIndex(q => q.id === qid)
     }
 
-    private trigger (qid: string, answer: K) {
+    private trigger(qid: string, answer: K) {
       if (!this.questionMap.has(qid))
         throw new Error(
           `Question with qid: ${qid} could not be found in the questions map.`
         )
       if (this.questionMap.get(qid)?.subs.length === 0) {
-        //console.warn(`No subscribers have been attached to question: ${qid}`);
         return
       }
       this.questionMap.get(qid)?.subs.forEach(sub => sub(answer))
@@ -292,10 +288,10 @@ export namespace Journey {
     subs: Array<(data?: T) => void | Promise<void>> = new Array<
       (data?: T) => void | Promise<void>
     >()
-    on (sub: (data?: T) => void | Promise<void>) {
+    on(sub: (data?: T) => void | Promise<void>) {
       this.subs.push(sub)
     }
-    push (streamData: T) {
+    push(streamData: T) {
       this.data.push(streamData)
       this.subs.forEach(sub => {
         sub(streamData)
@@ -308,7 +304,7 @@ export namespace Journey {
   const starts = new Array<() => void | Promise<void>>()
   const questions = new Questions()
   let configurationPath = 'questions.yml'
-    let _parser: QuestionParser;
+  let _parser: QuestionParser;
 
   // Writes to terminal from controller
   export namespace outputs {
@@ -318,11 +314,6 @@ export namespace Journey {
         outStream.push(data)
       }
     }
-    // export const update = <T extends Answer = Answer>() => {
-    //     return (cb: (data?: T) => void | Promise<void>) => {
-    //         inStream.on(cb);
-    //     }
-    // }
   }
 
   // Writes to controller from terminal
@@ -343,7 +334,7 @@ export namespace Journey {
     // do engine setup
     // ...
     //console.log('Staring Journey Engine.')
-      utils.rendering.clear();
+    utils.rendering.clear();
     for (let start of starts) {
       await start()
     }
@@ -380,24 +371,19 @@ export namespace Journey {
     return { write, start, questions, utils }
   }
 
-    export async function configure(parser: QuestionParser, _configPath?: string) {
-      if (_configPath) configPath(_configPath)
+  export async function configure(parser: QuestionParser, _configPath?: string) {
+    if (_configPath) configPath(_configPath)
     _parser = parser
   }
 
-  export function configPath (fPath: string) {
+  export function configPath(fPath: string) {
     configurationPath = fPath
   }
 
-    export async function run(...components: (() => void)[]) {
-        questions.initialize(await _parser.parse())
-        if (components) {
-            components.forEach(component => component())
-        }
-        else {
-            BasicController()
-            BasicRenderer()
-        }
+  export async function run(...components: (() => void)[]) {
+    questions.initialize(await _parser.parse())
+    console.log(questions.list)
+    components.forEach(component => component())
     await startup()
   }
 }
