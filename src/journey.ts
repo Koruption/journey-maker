@@ -1,5 +1,6 @@
 import { clear } from 'console'
-import { YAMLQuestionParser } from './parsers/yaml-question-parser'
+import { BasicController } from './journey-controller'
+import { BasicRenderer } from './journey-renderer'
 
 export namespace Journey {
   export namespace utils {
@@ -306,8 +307,8 @@ export namespace Journey {
   const inStream = new DataStream()
   const starts = new Array<() => void | Promise<void>>()
   const questions = new Questions()
-  let configurationPath = ''
-  let _parser: QuestionParser
+  let configurationPath = 'questions.yml'
+    let _parser: QuestionParser;
 
   // Writes to terminal from controller
   export namespace outputs {
@@ -379,7 +380,8 @@ export namespace Journey {
     return { write, start, questions, utils }
   }
 
-  export async function parser (parser: QuestionParser) {
+    export async function configure(parser: QuestionParser, _configPath?: string) {
+      if (_configPath) configPath(_configPath)
     _parser = parser
   }
 
@@ -387,10 +389,15 @@ export namespace Journey {
     configurationPath = fPath
   }
 
-  export async function run (...components: (() => void)[]) {
-    questions.initialize(await _parser.parse())
-    // console.log(questions.list);
-    components.forEach(component => component())
+    export async function run(...components: (() => void)[]) {
+        questions.initialize(await _parser.parse())
+        if (components) {
+            components.forEach(component => component())
+        }
+        else {
+            BasicController()
+            BasicRenderer()
+        }
     await startup()
   }
 }

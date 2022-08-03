@@ -5,10 +5,13 @@
 Image Credits - <a href="https://wallhere.com/en/wallpaper/1929717">wallhere.com</a>
 </figcaption>
 </figure>
-A tool inspired by traditional I/O text based terminal games. Use it to easily create stories and branching narratives.
+A tool inspired by traditional text adventure games. Use it to easily create stories and branching narratives. 
+
+# Overview
+The goal of the engine is simple, make it exceptionally easy to build cool, interactive text based games. Journey was made as a tool for writers to quickly build interactive stories. It can be as simple, or complex as you want, but some assumptions have been made, namely that you are creating a text based adventure game! The 3 core pieces of the Journey engine are the controller, renderer, and question set. Because Journey was made primarily for text adventures, some liberties were taken regarding its design. A few features may seem redundant, or unnecessary, but were nonetheless included to make it easier for those with little to no programming experience 
 
 # Getting Started
-
+Currently there is only one parser included in the project. It will take your yaml file and convert it into a format the engine can use. To get something up and running just add a yaml file with your questions formatted similarly to the ones included in the project.
 ```ts
 const journey = JourneyEngine.create();
 ...

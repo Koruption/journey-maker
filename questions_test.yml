@@ -1,0 +1,24 @@
+Q1:
+  Question: Do you believe in magic young wanderer?
+  Choices:
+    - Yes
+    - No
+    - Maybe
+Q2:
+  Question: Why have you journeyed to Grandor?
+  Choices:
+    - I believe its my destiny
+    - I was called to it in my dream
+    - Idk, I was bored
+    - Stop asking me questions
+Q3:
+  Question: What is your name?
+  Meta: 'assets/image.gif'
+
+Q4:
+  Question: A screeching roar grows in the distance, how do you react
+  Choices:
+    - Jump into a nearby barrel
+    - Grab the mage and use him for cover
+    - Bestow your sword and ready for battle
+    - Do nothing
