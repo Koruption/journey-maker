@@ -43,7 +43,7 @@ app.run();
 In a nutshell, the engine uses a parser to parse your questions and transform it into a format the engine can use. From there, you can choose to use the default controller and renderer implementations, or you can write your own. Out of the box, the engine's default controller will send your questions to the terminal in a linear fashion (top-down). For a more dynamic experience, you will need to write your own controller and react to the questions dynamically, e.g., `if question(2).choice == 1 then send question(7)`. Currently there is only one question parser provided in the project. It will take a yaml file and convert it into a format the engine can use. To get something up and running just add a yaml file with your questions formatted similarly to the ones included in the project.
 
 # Controllers
-Controllers manage the dynamics of the experience. If a user does answers with this, do that. Capturing these sorts of dynamics is natural to do in code, the engine tries to make it as easy as possible to do so. Here's what a simple controller looks like.
+Controllers manage the dynamics of the experience. **If a user answers with this, do that**. Capturing these sorts of dynamics is natural to do in code, the engine tries to make it as easy as possible to do so. Here's what a simple controller looks like.
 
 ```ts
 import { Journey } from "./journey";
