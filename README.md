@@ -8,7 +8,7 @@ Image Credits - <a href="https://wallhere.com/en/wallpaper/1929717">wallhere.com
 A tool inspired by traditional text adventure games. Use it to easily create stories and branching narratives. 
 
 # Overview
-The goal of the engine is simple, make it exceptionally easy for writers to build cool, interactive text based games. It can be as simple, or complex as you want, but some assumptions have been made regarding what you are making. The 3 core parts of the engine are the controller, renderer, and your question set. Because Journey is primarily for text adventures, some liberties were taken regarding its design. A few features may seem redundant, or unnecessary, but were nonetheless included to lower the barrier for users.
+The goal of the engine is simple, make it exceptionally easy for writers to build cool, interactive text based games. It can be as simple, or complex as you want, but some assumptions have been made regarding what you are making. The 3 core parts of the engine are the controller, renderer, and your question set. Because Journey is primarily for text adventures, some liberties were taken regarding its design. A few features may seem redundant, or unnecessary, but were nonetheless included to lower the barrier to entry.
 
 # To-Dos
 A short list of things i'd like to add to the engine in the near future.
